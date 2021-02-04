@@ -1,127 +1,169 @@
 <template>
-<div>
+  <div id="todo-list">
+    <table>
+      <thead>
+        <tr>
+          <th>todo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="todo in todos" :key="todo.id">
+          <!-- if editing === id means click edit and is editing  -->
+          <td v-if="editing === todo.id">
+            <input type="text" v-model="todo.description" />
+          </td>
+          <td v-else-if="completedTodo == true"></td>
+          <td v-else>{{ todo.description }}</td>
+          <!-- cannot call function delete() with this.todo -->
 
-  <section class="todoapp">
-    <header class="header">
-      <h1 v-text="title"></h1>
-      <input class="new-todo" placeholder="What needs to be done?"
-        v-on:keyup.enter="createTodo"
-        autofocus>
-    </header>
+          <td v-if="editing === todo.id">
+            <i
+              @click="editTodo(todo)"
+              class="fa fa-check"
+              aria-hidden="true"
+            ></i>
+            <i
+              @click="cancelEdit(todo)"
+              class="fa fa-times"
+              aria-hidden="true"
+            ></i>
+          </td>
+          <td v-else-if="completedTodo == true">
+            completed task actions
+          </td>
+          <td v-else>
+            <i
+              id="edit-button"
+              @click="editMode(todo)"
+              class="fa fa-pencil fa-1x"
+            ></i>
+            <i
+              id="trash-button"
+              @click="$emit('delete:todo', todo.id)"
+              class="fa fa-trash-o fa-1x"
+            ></i>
+          </td>
+        </tr>
 
-    <!-- This section should be hidden by default and shown when there are todos -->
-    <section class="main" v-if="todos.length">
-
-      <ul class="todo-list">
-          
-        <!-- These are here just to show the structure of the list items -->
-        <!-- List items should get the class `editing` when editing and `completed` when marked as completed -->
-        <li v-for="todo in todos" :key='todo.todos' :class="{ completed: todo.isDone, editing: todo === editing }">
-          <div class="view">
-            <input class="toggle" type="checkbox" v-model="todo.isDone">
-            <label @dblclick="startEditing(todo)">{{todo.text}}</label>
-            <button class="destroy" @click="destroyTodo(todo)"></button>
-          </div>
-          <input class="edit"
-          @keyup.esc="cancelEditing"
-          @keyup.enter="finishEditing"
-          @blur="finishEditing"
-          :value="todo.text">
-        </li>
-      </ul>
-    </section>
-
-    <!-- This footer should hidden by default and shown when there are todos -->
-    <footer class="footer" v-if="todos.length">
-      <!-- This should be `0 items left` by default -->
-      <span class="todo-count">
-        <strong>{{ activeTodos.length }}</strong> item(s) left</span>
-
-      <!-- Remove this if you don't implement routing -->
-      <ul class="filters">
-        <li>
-          <a class="selected" href="#/">All</a>
-        </li>
-        <li>
-          <a href="#/active">Active</a>
-        </li>
-        <li>
-          <a href="#/completed">Completed</a>
-        </li>
-      </ul>
-
-      <!-- Hidden if no completed items are left ↓ -->
-      <button class="clear-completed" @click="clearCompleted" v-show="completedTodos.length"> Clear completed </button>
-    </footer>
-  </section>
-
-  <footer class="info">
-    <p>Double-click to edit a todo</p>
-  </footer>
-
-  <!-- Scripts here ↓
-  <script src="node_modules/vue/dist/vue.js"></script>
-  <script src="node_modules/vue-router/dist/vue-router.js"></script>
-  <script src="app.js"></script> -->
-</div>
-
+        <tr v-if="completedTodo === null">
+          <button @click="completedMode">Completed</button>
+        </tr>
+        <tr v v-else>
+          <button @click="activeMode">Active</button>
+          <button>Clear All</button>
+        </tr>
+      </tbody>
+    </table>
+    <h1>hello world</h1>
+  </div>
 </template>
 
 <script>
-const LOCAL_STORAGE_KEY = 'todo-app-vue';
 export default {
-  name: 'todo',
-    data() {
-      return {
-        title: 'Hello!',
-        todos: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [
-    { text: 'Learn JavaScript ES6+ goodies', isDone: true },
-    { text: 'Learn Vue', isDone: false },
-    { text: 'Build something awesome', isDone: false },
-  ],
-    editing: null,
-  }
-},
-  methods:{
-      createTodo(event){
-          const textbox = event.target;
-          this.todos.push({text: textbox.value.trim(), isDone:false});
-          textbox.value='';
-      },
-      startEditing(todo) {
-      this.editing = todo;
-    },
-    finishEditing(event) {
-        if (!this.editing) { return; }
-        const textbox = event.target;
-        this.editing.text = textbox.value;
-        this.editing = null;
-    },
-    cancelEditing() {
-        this.editing = null;
-    },
-    destroyTodo(todo) {
-        const index = this.todos.indexOf(todo);
-        this.todos.splice(index, 1);
-    },
-    clearCompleted() {
-        this.todos = this.activeTodos;
-    }
+  data() {
+    return {
+      editing: null,
+      cachedTodo: null,
+      completedTodo: null,
+    };
   },
-  computed: {
-    activeTodos() {
-        return this.todos.filter(t => !t.isDone);
+  name: "todo-list",
+  props: {
+    todos: Array,
+  },
+  methods: {
+    editMode(todo) {
+      this.cachedTodo = Object.assign({}, todo);
+      this.editing = todo.id;
     },
-    completedTodos() {
-        return this.todos.filter(t => t.isDone);
-    }}
-    ,
-    watch: {
-     todos: {
-       deep: true,
-       handler(newValue) {
-         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newValue));
-         }}
-         }
-         }
+    editTodo(todo) {
+      if (todo.description === "") return;
+      this.$emit("edit:todo", todo.id, todo);
+      this.editing = null;
+    },
+    cancelEdit(todo) {
+      Object.assign(todo, this.cachedTodo);
+      this.editing = null;
+    },
+    completedMode() {
+      this.completedTodo = true;
+    },
+    activeMode() {
+      this.completedTodo = null;
+    },
+  },
+  computed: {},
+};
 </script>
+
+<style>
+#todo-list {
+  /* margin: -25px 0px 0px 0px; */
+  /* padding: 20px; */
+  width: 75%;
+  font-size: 15px;
+}
+button {
+  /* blank space between buttons */
+  margin-top: 5px;
+  margin-right: 10px;
+  width: auto;
+  font-size: 12px;
+  padding: 5px;
+}
+
+i {
+  margin: 0px 10px 0px 0px;
+}
+
+#edit-button {
+  color: dodgerblue;
+}
+#trash-button {
+  color: crimson;
+}
+</style>
+
+<template>
+  <div id="add-todo">
+    <form @submit.prevent="handleSubmit">
+      <input
+        type="text"
+        v-model="todo.description"
+        placeholder="what's on your mind"
+      />
+      <button>Add todo</button>
+    </form>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "add-todo",
+  data() {
+    return {
+      todo: {
+        description: "",
+        completed: false,
+      },
+    };
+  },
+  methods: {
+    handleSubmit() {
+      this.$emit("add:todo", this.todo);
+      //
+      // this.todo.description = ""
+    },
+  },
+};
+</script>
+
+<style>
+#add-todo {
+  width: 750px;
+  margin-top: -10px;
+  padding: 5px;
+}
+</style>
+
