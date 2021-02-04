@@ -1,58 +1,127 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
+<div>
+
+  <section class="todoapp">
+    <header class="header">
+      <h1 v-text="title"></h1>
+      <input class="new-todo" placeholder="What needs to be done?"
+        v-on:keyup.enter="createTodo"
+        autofocus>
+    </header>
+
+    <!-- This section should be hidden by default and shown when there are todos -->
+    <section class="main" v-if="todos.length">
+
+      <ul class="todo-list">
+          
+        <!-- These are here just to show the structure of the list items -->
+        <!-- List items should get the class `editing` when editing and `completed` when marked as completed -->
+        <li v-for="todo in todos" :key='todo.todos' :class="{ completed: todo.isDone, editing: todo === editing }">
+          <div class="view">
+            <input class="toggle" type="checkbox" v-model="todo.isDone">
+            <label @dblclick="startEditing(todo)">{{todo.text}}</label>
+            <button class="destroy" @click="destroyTodo(todo)"></button>
+          </div>
+          <input class="edit"
+          @keyup.esc="cancelEditing"
+          @keyup.enter="finishEditing"
+          @blur="finishEditing"
+          :value="todo.text">
+        </li>
+      </ul>
+    </section>
+
+    <!-- This footer should hidden by default and shown when there are todos -->
+    <footer class="footer" v-if="todos.length">
+      <!-- This should be `0 items left` by default -->
+      <span class="todo-count">
+        <strong>{{ activeTodos.length }}</strong> item(s) left</span>
+
+      <!-- Remove this if you don't implement routing -->
+      <ul class="filters">
+        <li>
+          <a class="selected" href="#/">All</a>
+        </li>
+        <li>
+          <a href="#/active">Active</a>
+        </li>
+        <li>
+          <a href="#/completed">Completed</a>
+        </li>
+      </ul>
+
+      <!-- Hidden if no completed items are left ↓ -->
+      <button class="clear-completed" @click="clearCompleted" v-show="completedTodos.length"> Clear completed </button>
+    </footer>
+  </section>
+
+  <footer class="info">
+    <p>Double-click to edit a todo</p>
+  </footer>
+
+  <!-- Scripts here ↓
+  <script src="node_modules/vue/dist/vue.js"></script>
+  <script src="node_modules/vue-router/dist/vue-router.js"></script>
+  <script src="app.js"></script> -->
+</div>
+
 </template>
 
 <script>
+const LOCAL_STORAGE_KEY = 'todo-app-vue';
 export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
+  name: 'todo',
+    data() {
+      return {
+        title: 'Hello!',
+        todos: JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) || [
+    { text: 'Learn JavaScript ES6+ goodies', isDone: true },
+    { text: 'Learn Vue', isDone: false },
+    { text: 'Build something awesome', isDone: false },
+  ],
+    editing: null,
   }
-}
+},
+  methods:{
+      createTodo(event){
+          const textbox = event.target;
+          this.todos.push({text: textbox.value.trim(), isDone:false});
+          textbox.value='';
+      },
+      startEditing(todo) {
+      this.editing = todo;
+    },
+    finishEditing(event) {
+        if (!this.editing) { return; }
+        const textbox = event.target;
+        this.editing.text = textbox.value;
+        this.editing = null;
+    },
+    cancelEditing() {
+        this.editing = null;
+    },
+    destroyTodo(todo) {
+        const index = this.todos.indexOf(todo);
+        this.todos.splice(index, 1);
+    },
+    clearCompleted() {
+        this.todos = this.activeTodos;
+    }
+  },
+  computed: {
+    activeTodos() {
+        return this.todos.filter(t => !t.isDone);
+    },
+    completedTodos() {
+        return this.todos.filter(t => t.isDone);
+    }}
+    ,
+    watch: {
+     todos: {
+       deep: true,
+       handler(newValue) {
+         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newValue));
+         }}
+         }
+         }
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped>
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
-</style>
